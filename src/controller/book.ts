@@ -17,6 +17,7 @@ export default class BookController {
         const books = await bookRepository.find({where: {userId: user}});
         ctx.body = books;
     }
+
     public static async createBook(ctx: BaseContext) {
         // get a book repository to perform operations with book
         const bookRepository: Repository<Book> = getManager().getRepository(Book);
@@ -51,7 +52,7 @@ export default class BookController {
         const userRepository: Repository<User> = getManager().getRepository(User);
 
         const bookToBeUpdated: Book = new Book();
-        bookToBeUpdated.id =  +ctx.params.bookId;
+        bookToBeUpdated.id = +ctx.params.bookId;
         bookToBeUpdated.name = ctx.request.body.name;
         bookToBeUpdated.description = ctx.request.body.description;
         bookToBeUpdated.userId = +ctx.params.id;
@@ -65,12 +66,12 @@ export default class BookController {
             // return BAD REQUEST status code and errors array
             ctx.status = 400;
             ctx.body = errors;
-        } else if ( !await bookRepository.findOne(bookToBeUpdated.id) ) {
+        } else if (!await bookRepository.find({where: {userId: +ctx.params.id}})) {
             // check if a book with the specified id exists
             // return a BAD REQUEST status code and error message
             ctx.status = 400;
             ctx.body = 'The book you are trying to update does not exist in the db';
-        } else if ( !await userRepository.findOne(+ctx.params.id) ) {
+        } else if (!await userRepository.findOne(+ctx.params.id)) {
             // return BAD REQUEST status code and email already exists error
             ctx.status = 400;
             ctx.body = 'Book is not belonged any user';
@@ -82,4 +83,28 @@ export default class BookController {
             ctx.body = book;
         }
     }
- }
+
+    public static async deleteBook(ctx: BaseContext) {
+        // get a book repository to perform operations with book
+        const bookRepository = getManager().getRepository(Book);
+        // get a user repository to perform operations with user
+        const userRepository: Repository<User> = getManager().getRepository(User);
+
+        // find the user by specified id
+        const bookToRemove: Book = await bookRepository.findOne(+ctx.params.bookId || 0);
+        if (!await userRepository.findOne(+ctx.params.id)) {
+            // return BAD REQUEST status code and email already exists error
+            ctx.status = 400;
+            ctx.body = 'Book is not belonged any user';
+        } else if (!bookToRemove) {
+            // return a BAD REQUEST status code and error message
+            ctx.status = 400;
+            ctx.body = 'The book you are trying to delete doesn\'t exist in the db';
+        } else {
+            // the user is there so can be removed
+            await bookRepository.remove(bookToRemove);
+            // return a NO CONTENT status code
+            ctx.status = 204;
+        }
+    }
+}
