@@ -10,16 +10,20 @@ export class Book {
     @Column({
         length: 80
     })
-    @Length(10, 80)
+    @Length(5, 80)
     name: string;
 
     @Column({
-        length: 255
+        length: 80
     })
+    @Length(5, 80)
     description: string;
 
     @Column()
     userId: number;
+
+    @Column()
+    date: Date;
 
     @ManyToOne(type => User, user => user.book)
     user: User;
