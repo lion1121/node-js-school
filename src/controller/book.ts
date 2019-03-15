@@ -1,7 +1,8 @@
 import { BaseContext } from 'koa';
-import { getManager, Repository } from 'typeorm';
+import { Equal, getManager, Not, Repository } from 'typeorm';
 import { Book } from '../entity/book';
 import { User } from '../entity/user';
+import { validate, ValidationError } from 'class-validator';
 
 export default class BookController {
 
@@ -42,4 +43,43 @@ export default class BookController {
         ctx.status = 201;
         ctx.body = book;
     }
-}
+
+    public static async updateBook(ctx: BaseContext) {
+        // get a book repository to perform operations with book
+        const bookRepository: Repository<Book> = getManager().getRepository(Book);
+        // get a user repository to perform operations with user
+        const userRepository: Repository<User> = getManager().getRepository(User);
+
+        const bookToBeUpdated: Book = new Book();
+        bookToBeUpdated.id =  +ctx.params.bookId;
+        bookToBeUpdated.name = ctx.request.body.name;
+        bookToBeUpdated.description = ctx.request.body.description;
+        bookToBeUpdated.userId = +ctx.params.id;
+        bookToBeUpdated.date = new Date();
+        ctx.body = +ctx.params.bookId;
+
+        // validate user entity
+        const errors: ValidationError[] = await validate(bookToBeUpdated); // errors is an array of validation errors
+
+        if (errors.length > 0) {
+            // return BAD REQUEST status code and errors array
+            ctx.status = 400;
+            ctx.body = errors;
+        } else if ( !await bookRepository.findOne(bookToBeUpdated.id) ) {
+            // check if a book with the specified id exists
+            // return a BAD REQUEST status code and error message
+            ctx.status = 400;
+            ctx.body = 'The book you are trying to update does not exist in the db';
+        } else if ( !await userRepository.findOne(+ctx.params.id) ) {
+            // return BAD REQUEST status code and email already exists error
+            ctx.status = 400;
+            ctx.body = 'Book is not belonged any user';
+        } else {
+            // save the book contained in the PUT body
+            const book = await bookRepository.save(bookToBeUpdated);
+            // return CREATED status code and updated user
+            ctx.status = 201;
+            ctx.body = book;
+        }
+    }
+ }
